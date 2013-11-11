@@ -1,4 +1,8 @@
 """
+Command line tool to segment and classify one single imagecontainer
+Usage
+
+>>>cmdtool.py -h
 """
 
 import os
@@ -296,12 +300,12 @@ class ImageProcessor(object):
         self.probs = np.array(probs)
 
 
-class ClassFinder(object):
+class CmdTool(object):
 
     def __init__(self, configfile, outdir, image1,
                  image2 = None, image3 = None):
 
-        super(ClassFinder, self).__init__()
+        super(CmdTool, self).__init__()
         self.environ = CecogEnvironment(cecog.VERSION,
                                         redirect=False, debug=False)
         self.mapper = SettingsMapper(configfile)
@@ -361,6 +365,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    cf = ClassFinder(args.configfile, args.outdir, args.image1,
-                     args.image2, args.image3)
+    cf = CmdTool(args.configfile, args.outdir, args.image1,
+                 args.image2, args.image3)
     cf()
