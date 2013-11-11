@@ -365,6 +365,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.configfile is None:
+        raise SystemExit("type cmdtool.py -h for help")
     cf = CmdTool(args.configfile, args.outdir, args.image1,
                  args.image2, args.image3)
     cf()
