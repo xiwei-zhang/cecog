@@ -1,17 +1,12 @@
 """
-classfinder.py
-
-Classes for image segmenentation, feature extraction, and classification.
-If object of interset is found send to WindowsRegistry imaging job Trigger1.
-Output is written in a common directory
-This class should be replaced by multijob.py
 """
-import traceback
+
 import os
 import sys
+import csv
+import argparse
 import numpy as np
 from collections import OrderedDict
-from pylsm.lsmreader import Lsmimage
 
 # to find the settingsmapper
 sys.path.append(os.path.dirname(__file__))
@@ -33,7 +28,6 @@ from cecog.io.imagecontainer import MetaImage
 from cecog.analyzer.channel import PrimaryChannel
 from cecog.analyzer.channel import SecondaryChannel
 from cecog.analyzer.channel import TertiaryChannel
-from cecog.analyzer.channel import MergedChannel
 from cecog.traits.config import ConfigSettings
 
 # hexToRgb was replace in cellcogniton 1.5.0 since
@@ -48,8 +42,7 @@ class SettingsMapper(object):
     """Map parameters from a ConfigSettings instance to groups to fit
     the API"""
 
-    CHANNEL_CLASSES = (PrimaryChannel, SecondaryChannel,
-                        TertiaryChannel, MergedChannel)
+    CHANNEL_CLASSES = (PrimaryChannel, SecondaryChannel, TertiaryChannel)
 
     FEATURES = {'featurecategory_intensity': ['normbase', 'normbase2'],
                 'featurecategory_haralick': ['haralick', 'haralick2'],
@@ -150,7 +143,7 @@ class SettingsMapper(object):
 
         # new image size after registration of all images
         image_size = (self.img_width - max(diff_x),
-                      self.img_width - max(diff_y))
+                      self.img_height - max(diff_y))
 
         return (max(xs), max(ys)), image_size
 
@@ -198,80 +191,34 @@ class SettingsMapper(object):
         return regions
 
 
-class LsmImage(Lsmimage):
-    """LSM image class to fit the needs of the classfinder plugin.
-    i.e. it has methods to return the number of channels, z-slices etc...
-    """
-
-    CZ_LSM_INFO = 'CZ LSM info'
-    WIDTH = 'Dimension X'
-    HEIGHT = 'Dimension Y'
-    ZSTACK = 'Dimension Z'
-    CHANNEL = 'Sample / Pixel'
-    IMAGE = 'Image'
-
-    def __init__(self, *args, **kw):
-        Lsmimage.__init__(self, *args, **kw)
-
-    @property
-    def zslices(self):
-        return self.header[self.CZ_LSM_INFO][self.ZSTACK]
-
-    @property
-    def size(self):
-        return (self.header[self.CZ_LSM_INFO][self.WIDTH],
-                self.header[self.CZ_LSM_INFO][self.HEIGHT])
-
-    @property
-    def channels(self):
-        return self.header[self.IMAGE][0][self.CHANNEL]
-
-    def meta_images(self, channel):
-        """Get a list of cellcognition meta images for a given channel.
-        One meta image per z-slice"""
-        assert isinstance(channel, int)
-
-        if not (0 <= channel < self.channels):
-            raise RuntimeError("channel %d does not exist" %channel)
-
-        metaimages = list()
-        for i in xrange(self.zslices):
-            img = self.get_image(stack=i, channel=channel)
-            # kinda sucks, but theres no way around
-            metaimage = MetaImage()
-            metaimage.set_image(ccore.numpy_to_image(img, copy=True))
-            metaimages.append(metaimage)
-        return metaimages
-
-
 class ImageProcessor(object):
 
-    def __init__(self, mapper, imagefile):
+    def __init__(self, mapper, images):
         super(ImageProcessor, self).__init__()
         self.mapper = mapper
         self._channels = OrderedDict()
 
-        self.image = LsmImage(imagefile)
-        self.image.open()
-        self.mapper.setImageSize(*self.image.size)
-        self._setupChannels()
+        self.metaimages = dict()
+        for name, image in images.iteritems():
+            metaimage = MetaImage()
+            metaimage.set_image(ccore.readImage(image))
+            self.metaimages[name] = [metaimage]
 
-    def _setupChannels(self):
+        self.mapper.setImageSize(metaimage.width, metaimage.height)
+        self._setupChannels(images)
+
+    def _setupChannels(self, images):
         chdict = dict((c.NAME.lower(), c) for c in self.mapper.CHANNEL_CLASSES)
+        regions = self.mapper.channelRegions()
 
-        for cname, region in self.mapper.channelRegions().iteritems():
-            # use a mapping if one exists
+        for cname in images.iterkeys():
             cid = self.mapper("ObjectDetection", "%s_channelid" %cname)
             channel = chdict[cname.lower()](
                 **self.mapper.channelParams(cname.title(), cid))
 
-            if channel.is_virtual():
-                channel.merge_regions = region
-            else:
-                channel.SEGMENTATION.init_from_settings(self.mapper.settings)
-                for zslice in self.image.meta_images(eval(cid)-1):
-                    channel.append_zslice(zslice)
-
+            channel.SEGMENTATION.init_from_settings(self.mapper.settings)
+            for zslice in self.metaimages[cname]:
+                channel.append_zslice(zslice)
             self._channels[cname] = channel
 
     def exportLabelImage(self, ofile, cname):
@@ -281,7 +228,6 @@ class ImageProcessor(object):
             if isinstance(region, tuple):
                 region = '-'.join(region)
             lif_name = ofile+"-lables_%s_%s.tif" %(cname.lower(), region)
-            print(lif_name)
             container.exportLabelImage(lif_name, "LWZ")
 
     def exportClassificationImage(self, ofile, cname):
@@ -291,8 +237,20 @@ class ImageProcessor(object):
             if isinstance(region, tuple):
                 region = '-'.join(region)
             ofile = ofile+"-classification_%s_%s.tif" %(cname.lower(), region)
-            print('saving %s' %ofile)
             container.exportRGB(ofile, '90')
+
+    def exportTable(self, ofile, classifier):
+        ofile = ofile+'.csv'
+        classnames = classifier.class_names.values()
+        fieldnames = ['ObjectId'] + classnames
+        with open(ofile, "w") as fp:
+            writer = csv.DictWriter(fp, fieldnames, delimiter=",")
+            writer.writeheader()
+            for obj, probs in zip(self.objects, self.probs):
+                line = {'ObjectId': obj.iId}
+                for label, name in classifier.class_names.iteritems():
+                    line[name] = probs[label]
+                writer.writerow(line)
 
     def process(self):
         """process files: create projection normalize image get objects for
@@ -300,7 +258,6 @@ class ImageProcessor(object):
         channels = list()
         for cname, channel in self._channels.iteritems():
             channels.append(channel)
-
             channel.apply_zselection()
             channel.normalize_image()
             channel.apply_registration()
@@ -309,9 +266,6 @@ class ImageProcessor(object):
                 channel.apply_segmentation()
             elif isinstance(channel, (SecondaryChannel, TertiaryChannel)):
                 channel.apply_segmentation(*channels[:])
-            elif isinstance(channel, MergedChannel):
-                channel.apply_segmentation(self._channels,
-                                           master=PrimaryChannel.NAME)
             channel.apply_features()
 
     def findObjects(self, classifier):
@@ -338,67 +292,75 @@ class ImageProcessor(object):
                 rgb = ccore.RGBValue(*hexToRgb(hexcolor))
                 container.markObjects([l], rgb, False, True)
 
-        return np.array(objects), np.array(probs)
+        self.objects = np.array(objects)
+        self.probs = np.array(probs)
 
 
 class ClassFinder(object):
 
-    def __init__(self, imagefile, class_of_interest, classifier_name, cfgfile,
-                 outdir=os.getcwd(), out_images=True):
+    def __init__(self, configfile, outdir, image1,
+                 image2 = None, image3 = None):
 
         super(ClassFinder, self).__init__()
         self.environ = CecogEnvironment(cecog.VERSION,
                                         redirect=False, debug=False)
-        self.mapper = SettingsMapper(cfgfile)
-        self.class_of_interest = class_of_interest
-        self.out_images = out_images
-        self.classifier_name = classifier_name
+        self.mapper = SettingsMapper(configfile)
+
+        self.images = dict()
+        names = [cl.NAME for cl in self.mapper.CHANNEL_CLASSES]
+        for name, image in zip(names, (image1, image2, image3)):
+            if image is not None:
+                self.images[name] = image
+
+        self.classifiers = dict()
         self.outdir = outdir
-        self.imagefile = imagefile
         self._setupClassifier()
 
-
     def _setupClassifier(self):
-        self.classifier = CommonClassPredictor( \
-            clf_dir=self.mapper('Classification',
-                                '%s_classification_envpath'
-                                %self.classifier_name),
-            name=self.classifier_name,
-            channels=self.classifier_name,
-            color_channel=self.mapper("ObjectDetection", "%s_channelid"
-                                      %self.classifier_name))
-        self.classifier.importFromArff()
-        self.classifier.loadClassifier()
+        for name, image in self.images.iteritems():
+            if image is None:
+                continue
+            self.classifiers[name] = CommonClassPredictor( \
+                clf_dir=self.mapper('Classification',
+                                    '%s_classification_envpath'
+                                    %name),
+                name=name,
+                channels=name,
+                color_channel=self.mapper("ObjectDetection", "%s_channelid" %name))
 
-        if self.class_of_interest not \
-                in self.classifier.class_names.keys():
-            raise RuntimeError("Class of interest is not defined!")
-
+            self.classifiers[name].importFromArff()
+            self.classifiers[name].loadClassifier()
 
     def __call__(self):
-        ofile = join(self.outdir, str(splitext(basename(self.imagefile))[0]))
-        imp = ImageProcessor(self.mapper, str(self.imagefile))
+        imp = ImageProcessor(self.mapper, self.images)
         imp.process()
 
-        print('processing image %s' %basename(self.imagefile))
-        candidates, probs = imp.findObjects(self.classifier)
-
-        # after classification!
-        if self.out_images:
-            imp.exportLabelImage(ofile, self.classifier_name.title())
-            imp.exportClassificationImage(ofile, self.classifier_name.title())
-
-        classname = self.classifier.class_names[self.class_of_interest]
-        import pdb; pdb.set_trace()
-
+        for name, imgfile in self.images.iteritems():
+            print('processing image %s' %basename(imgfile))
+            classifier = self.classifiers[name]
+            ofile = join(self.outdir, str(splitext(basename(imgfile))[0]))
+            imp.findObjects(classifier)
+            imp.exportLabelImage(ofile, name.title())
+            imp.exportClassificationImage(ofile, name.title())
+            imp.exportTable(ofile, classifier)
 
 if __name__ == '__main__':
 
-    params = {'imagefile': '/Users/hoefler/sandbox/pycronaut/test_data/test_image_merged.lsm',
-              'cfgfile': '/Users/hoefler/sandbox/pycronaut/test_data/test_merged_channel.conf',
-              'class_of_interest': 4,
-              'out_images': False,
-              'classifier_name': "Merged"}
+    parser = argparse.ArgumentParser( \
+        description='Run SVM classfier on a single images')
+    parser.add_argument('-i1', '--image1', dest='image1',
+                        help='images files')
+    parser.add_argument('-i2', '--image2', dest='image2',
+                        help='images files')
+    parser.add_argument('-i3', '--image3', dest='image3',
+                        help='images files')
+    parser.add_argument("-o", "--outdir", dest="outdir", type=str,
+                        default=None, help="Output directory")
+    parser.add_argument("-s", "--settings", dest="configfile", type=str,
+                        help="Path to cellcognition config file")
 
-    cf = ClassFinder(**params)
+    args = parser.parse_args()
+
+    cf = ClassFinder(args.configfile, args.outdir, args.image1,
+                     args.image2, args.image3)
     cf()
