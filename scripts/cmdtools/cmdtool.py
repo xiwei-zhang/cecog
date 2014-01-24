@@ -3,6 +3,10 @@ Command line tool to segment and classify one single imagecontainer
 Usage
 
 >>>cmdtool.py -h
+
+The output is the label image, the classifcation image and a table of the
+prediction probabilities.
+
 """
 
 import os
@@ -25,7 +29,6 @@ except ImportError:
 
 from cecog import ccore
 from cecog import CH_VIRTUAL
-from cecog.traits.analyzer import SECTION_REGISTRY
 from cecog.learning.learning import CommonClassPredictor
 from cecog.environment import CecogEnvironment
 from cecog.io.imagecontainer import MetaImage
@@ -64,7 +67,7 @@ class SettingsMapper(object):
     def __init__(self, configfile):
         self.img_height = None
         self.img_width = None
-        self.settings = ConfigSettings(SECTION_REGISTRY)
+        self.settings = ConfigSettings()
         self.settings.read(configfile)
 
     def __call__(self, section, param):
@@ -351,13 +354,15 @@ class CmdTool(object):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser( \
-        description='Run SVM classfier on a single images')
+        description=('Run SVM classfier on a single images. Output'
+                     'is the label image the classification image and a '
+                     'csv file that contains the prediction probabilities'))
     parser.add_argument('-i1', '--image1', dest='image1',
-                        help='images files')
+                        help='image file for primary channel')
     parser.add_argument('-i2', '--image2', dest='image2',
-                        help='images files')
+                        help='image file for secondary channel')
     parser.add_argument('-i3', '--image3', dest='image3',
-                        help='images files')
+                        help='image file for tertiary channel')
     parser.add_argument("-o", "--outdir", dest="outdir", type=str,
                         default=None, help="Output directory")
     parser.add_argument("-s", "--settings", dest="configfile", type=str,
@@ -365,8 +370,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.configfile is None:
-        raise SystemExit("type cmdtool.py -h for help")
+    if args.configfile is None or \
+            args.image1 is None or \
+            args.outdir is None:
+        raise SystemExit((" one of the mandatory options -i1, -o, -s is missing"
+                          "\n\ntype cmdtool.py -h for help\n"))
     cf = CmdTool(args.configfile, args.outdir, args.image1,
                  args.image2, args.image3)
     cf()

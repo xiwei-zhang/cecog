@@ -36,7 +36,9 @@ ccore = Extension('cecog.ccore._cecog',
 
 # python packages to distribute
 packages = build_helpers.find_submodules("./pysrc/cecog", "cecog")
-scripts = [join('scripts', 'CecogAnalyzer.py'), join('scripts', 'cecog_batch.py')]
+scripts = [join('scripts', 'CecogAnalyzer.py'),
+           join('scripts', 'cecog_batch.py'),
+           join('scripts', 'cmdtools', 'cmdtool.py')]
 
 setup(scripts = scripts,
       data_files = build_helpers.get_data_files(build_helpers.TARGET_SYS,
