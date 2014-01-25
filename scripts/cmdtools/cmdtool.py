@@ -357,24 +357,21 @@ if __name__ == '__main__':
         description=('Run SVM classfier on a single images. Output'
                      'is the label image the classification image and a '
                      'csv file that contains the prediction probabilities'))
-    parser.add_argument('-i1', '--image1', dest='image1',
+    parser.add_argument('-i1', '--image1', dest='image1', required=True,
                         help='image file for primary channel')
     parser.add_argument('-i2', '--image2', dest='image2',
                         help='image file for secondary channel')
     parser.add_argument('-i3', '--image3', dest='image3',
                         help='image file for tertiary channel')
-    parser.add_argument("-o", "--outdir", dest="outdir", type=str,
+    parser.add_argument("-o", "--outdir", dest="outdir",
+                        type=str, required=True,
                         default=None, help="Output directory")
-    parser.add_argument("-s", "--settings", dest="configfile", type=str,
+    parser.add_argument("-s", "--settings", dest="configfile",
+                        type=str, required=True,
                         help="Path to cellcognition config file")
 
     args = parser.parse_args()
 
-    if args.configfile is None or \
-            args.image1 is None or \
-            args.outdir is None:
-        raise SystemExit((" one of the mandatory options -i1, -o, -s is missing"
-                          "\n\ntype cmdtool.py -h for help\n"))
     cf = CmdTool(args.configfile, args.outdir, args.image1,
                  args.image2, args.image3)
     cf()
