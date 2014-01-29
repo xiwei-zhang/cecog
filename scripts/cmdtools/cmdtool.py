@@ -16,9 +16,6 @@ import argparse
 import numpy as np
 from collections import OrderedDict
 
-# to find the settingsmapper
-sys.path.append(os.path.dirname(__file__))
-
 from os.path import basename, splitext, join
 
 try:
@@ -36,13 +33,7 @@ from cecog.analyzer.channel import PrimaryChannel
 from cecog.analyzer.channel import SecondaryChannel
 from cecog.analyzer.channel import TertiaryChannel
 from cecog.traits.config import ConfigSettings
-
-# hexToRgb was replace in cellcogniton 1.5.0 since
-# matplotlib implements the same functionality
-try:
-    from cecog.util.util import hexToRgb
-except ImportError:
-    from cecog.colors import hex2rgb as hexToRgb
+from cecog.colors import hex2rgb as hexToRgb
 
 
 class SettingsMapper(object):
