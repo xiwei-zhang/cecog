@@ -241,7 +241,7 @@ class ImageProcessor(object):
         ofile = ofile+'.csv'
         classnames = classifier.class_names.values()
         fieldnames = ['ObjectId'] + classnames
-        with open(ofile, "w") as fp:
+        with open(ofile, "wb") as fp:
             writer = csv.DictWriter(fp, fieldnames, delimiter=",")
             writer.writeheader()
             for obj, probs in zip(self.objects, self.probs):
