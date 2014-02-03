@@ -214,7 +214,7 @@ class ImageProcessor(object):
             channel = chdict[cname.lower()](
                 **self.mapper.channelParams(cname.title(), cid))
 
-            channel.SEGMENTATION.init_from_settings(self.mapper.settings)
+            channel.plugin_mgr.init_from_settings(self.mapper.settings)
             for zslice in self.metaimages[cname]:
                 channel.append_zslice(zslice)
             self._channels[cname] = channel
