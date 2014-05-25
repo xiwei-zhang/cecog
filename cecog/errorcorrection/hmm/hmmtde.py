@@ -26,21 +26,22 @@ from cecog.errorcorrection.hmm import HmmCore
 from cecog.errorcorrection.hmm import estimator
 from cecog.errorcorrection.hmm import LabelMapper
 
-
 class TdeEstimator(estimator.HMMProbBasedEstimator):
 
     def __init__(self, *args, **kw):
         super(TdeEstimator, self).__init__(*args, **kw)
 
-    @property
-    def _emission_noise(self):
-        # adhoc assumption
-        return 0.001
+    # @property
+    # def _emission_noise(self):
+    #     # adhoc assumption
+    #     return 0.001
 
-    def _estimate_emis(self):
-        """This emission is an adhoc-assumtiopn!"""
-        self._emis = normalize(np.eye(self.nstates) + self._emission_noise,
-                               eps=0.0)
+    # def _estimate_emis(self):
+    #     """This emission is an adhoc-assumtiopn!"""
+    #     super(TdeEstimator, self)._estimate_emis()
+    #     import pdb; pdb.set_trace()
+    #     self._emis = normalize(np.eye(self.nstates) + self._emission_noise,
+    #                            eps=0.0)
 
 
 class HmmTde(HmmCore):
@@ -55,41 +56,36 @@ class HmmTde(HmmCore):
         est = TdeEstimator(states, probs, tracks)
         return est
 
-    def decode(self, tracks, probs, est):
-        tracks2 = np.empty(tracks.shape, dtype=int)
+    def viterbi(self, track, est):
+        """Clalculate the viterbi path of a given hmm."""
 
-        for i, track in enumerate(tracks):
-            ntracks = len(tracks)
-            nframes = len(tracks[0])
-            emis = np.zeros((nframes, est.nstates))
+        track2 = np.empty(track.shape, dtype=int)
+        nframes = len(track)
 
-            P  = np.zeros((nframes, est.nstates))
-            # first row doesn't get updated later
-            bp = np.zeros((nframes, est.nstates), dtype=int) - 1
-            P2 = np.zeros((est.nstates, est.nstates))
+        P  = np.zeros((nframes, est.nstates))
+        # first row doesn't get updated later
+        bp = np.zeros((nframes, est.nstates), dtype=int) - 1
+        P2 = np.zeros((est.nstates, est.nstates))
 
+        P[0, :] = est.startprob*est.emis[:, track[0]]
+        # loop over frames
+        for fi in xrange(1, nframes, 1):
+            # loop over hidden states
+            for ni in xrange(est.nstates):
+                P2[ni, :] = P[fi-1, ni]*est.trans[ni, :]*est.emis[:, track[fi]]
 
-            # setup the time dependend emssion matrix
-            for j in xrange(est.nstates):
-                emis += np.tile(est.emis[:, j], (nframes, 1))* \
-                    np.tile(probs[i, :, j], (est.nstates, 1)).T
+            for ni in xrange(est.nstates):
+                P[fi, ni] = P2[:, ni].max()
+                bp[fi, ni] = np.argmax(P2[:, ni])
 
-            P[0, ] = est.startprob*emis[0, :]
-            # loop over frames
-            for fi in xrange(1, nframes, 1):
-                # loop over hidden states
-                for ni in xrange(est.nstates):
-                    P2[ni, :] = P[fi-1, ni] * est.trans[ni, :]*emis[fi, :]
+        track2[nframes-1] = np.argmax(P[nframes-1, :])
+        # from PyQt4.QtCore import pyqtRemoveInputHook; pyqtRemoveInputHook()
+        # import pdb; pdb.set_trace()
 
-                for ni in xrange(est.nstates):
-                    P[fi, ni] = P2[:, ni].max()
-                    bp[fi, ni] = np.argmax(P2[:, ni])
+        for fi in xrange(nframes-1, 0, -1):
+            track2[fi-1] = bp[fi, track2[fi]]
 
-            tracks2[i, nframes-1] = np.argmax(P[nframes-1, :])
-            for fi in xrange(nframes-1, 0, -1):
-                tracks2[i, fi-1] = bp[fi, tracks2[i, fi]]
-
-        return tracks2
+        return track2
 
     def __call__(self):
         hmmdata = dict()
@@ -113,8 +109,10 @@ class HmmTde(HmmCore):
             est = self._get_estimator(probs, labelmapper.label2index(tracks))
             est.constrain(self.hmmc(est, labelmapper))
 
-            tracks2 = self.decode(tracks, probs, est)
-            tracks2 = labelmapper.index2labels(np.array(tracks2, dtype=int))
+            tracks2 = np.empty(tracks.shape, dtype=int)
+            for i, track in enumerate(tracks):
+                tr2 = self.viterbi(labelmapper.label2index(track), est)
+                tracks2[i, :] = labelmapper.index2labels(tr2)
 
             bucket = HmmBucket(tracks,
                                tracks2,
