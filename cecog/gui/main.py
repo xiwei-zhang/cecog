@@ -1,7 +1,7 @@
 """
 main.py
 
-CecogAnalyzer main window
+..CecogAnalyzer main window
 
 """
 
@@ -29,6 +29,8 @@ from cecog import version
 from cecog.units.time import TimeConverter
 from cecog.environment import CecogEnvironment
 from cecog.io.imagecontainer import ImageContainer
+
+
 
 from cecog.gui.config import GuiConfigSettings
 from cecog.traits.analyzer.general import SECTION_NAME_GENERAL
@@ -60,7 +62,7 @@ from cecog.gui.aboutdialog import CecogAboutDialog
 
 from cecog.gui.browser import Browser
 from cecog.gui.helpbrowser import HelpBrowser
-from cecog.gui.log import GuiLogHandler, LogWindow
+from cecog.logging import LogWindow
 
 from cecog.gui.progressdialog import ProgressDialog
 from cecog.gui.progressdialog import ProgressObject
@@ -77,7 +79,12 @@ class FrameStack(QtGui.QStackedWidget):
         self.helpbrowser = HelpBrowser()
         self.helpbrowser.hide()
 
+        self.log_window = LogWindow(self)
         self._wmap = dict()
+
+    def showLogWindow(self):
+        self.log_window.show()
+        self.log_window.raise_()
 
     def addWidget(self, widget):
         wi = super(FrameStack, self).addWidget(widget)
@@ -96,8 +103,8 @@ class CecogAnalyzer(QtGui.QMainWindow):
     NAME_FILTERS = ['Settings files (*.conf)', 'All files (*.*)']
     modified = QtCore.pyqtSignal('bool')
 
-    def __init__(self, appname, version, redirect, settings=None, debug=False,
-                 *args, **kw):
+    def __init__(self, appname, version, redirect, settings=None,
+                 debug=False, *args, **kw):
         super(CecogAnalyzer, self).__init__(*args, **kw)
         self.setWindowTitle("%s-%s" %(appname, version) + '[*]')
         self.setCentralWidget(QtGui.QFrame(self))
@@ -107,8 +114,8 @@ class CecogAnalyzer(QtGui.QMainWindow):
         self.appname = appname
         self.debug = debug
 
-        self.environ = CecogEnvironment(version=version,
-                                        redirect=redirect, debug=debug)
+        self.environ = CecogEnvironment(version=version, redirect=redirect,
+                                        debug=debug)
         if debug:
             self.environ.pprint()
 
@@ -131,23 +138,24 @@ class CecogAnalyzer(QtGui.QMainWindow):
         action_save_as = self.create_action('&Save Settings As...',
                                             shortcut=QtGui.QKeySequence.SaveAs,
                                             slot=self._on_file_save_as)
+
         menu_file = self.menuBar().addMenu('&File')
         self.add_actions(menu_file, (action_pref,
                                      None, action_open,
                                      None, action_save, action_save_as,
                                      None, action_quit))
 
-        action_open = self.create_action('&Open Browser...',
-                                         shortcut=QtGui.QKeySequence('CTRL+B'),
-                                         slot=self._on_browser_open)
-        menu_browser = self.menuBar().addMenu('&Browser')
-        self.add_actions(menu_browser, (action_open, ))
-
-        action_log = self.create_action('&Show Log Window...',
+        action_log = self.create_action('&Log window',
                                         shortcut=QtGui.QKeySequence(Qt.CTRL+Qt.Key_L),
                                         slot=self._on_show_log_window)
-        menu_window = self.menuBar().addMenu('&Window')
-        self.add_actions(menu_window, (action_log,))
+
+        action_open = self.create_action('&Browser',
+                                         shortcut=QtGui.QKeySequence('CTRL+B'),
+                                         slot=self._on_browser_open)
+
+        menu_view = self.menuBar().addMenu('&View')
+        self.add_actions(menu_view, (action_log,))
+        self.add_actions(menu_view, (action_open,))
 
         action_help_startup = self.create_action('&Startup Help...',
                                                  shortcut=QtGui.QKeySequence.HelpContents,
@@ -216,16 +224,10 @@ class CecogAnalyzer(QtGui.QMainWindow):
         layout.addWidget(self._pages, 0, 1, 2, 1)
         layout.setContentsMargins(1, 1, 1, 1)
 
-        handler = GuiLogHandler(self)
-        handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
-        handler.setFormatter(formatter)
-
-        self.log_window = LogWindow(self, handler)
-        self.log_window.setGeometry(50, 50, 600, 300)
-
-        logger = logging.getLogger()
-        logger.setLevel(logging.INFO)
+        # handler = GuiLogHandler(self)
+        # handler.setLevel(logging.INFO)
+        # formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+        # handler.setFormatter(formatter)
 
         self.setGeometry(0, 0, 1250, 800)
         self.setMinimumSize(QtCore.QSize(700, 600))
@@ -240,7 +242,8 @@ class CecogAnalyzer(QtGui.QMainWindow):
         elif os.path.isfile(settings):
             self.load_settings(settings)
         else:
-            QMessageBox.warning(self, "Warning", "File (%s) does not exist" %settings)
+            QMessageBox.warning(
+                self, "Warning", "File (%s) does not exist" %settings)
 
 
     def _save_geometry(self):
@@ -724,9 +727,8 @@ class CecogAnalyzer(QtGui.QMainWindow):
             self._browser = None
 
     def _on_show_log_window(self):
-        logger = logging.getLogger()
-        logger.addHandler(self.log_window.handler)
-        self.log_window.show()
+        self._pages.showLogWindow()
+
 
     def _get_save_as_filename(self):
         dir = ""
