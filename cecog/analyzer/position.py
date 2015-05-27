@@ -48,8 +48,30 @@ from cecog.util.stopwatch import StopWatch
 from cecog.util.util import makedirs
 from cecog.util.ctuple import COrderedDict
 from cecog.learning.learning import ClassDefinitionUnsup
-from cecog.features import FEATURE_MAP
+#<<<<<<< HEAD
+#from cecog.features import FEATURE_MAP
+#=======
 
+import pdb
+
+FEATURE_MAP = {'featurecategory_intensity': ['normbase', 'normbase2'],
+               'featurecategory_haralick': ['haralick', 'haralick2'],
+               'featurecategory_stat_geom': ['levelset'],
+               'featurecategory_granugrey': ['granulometry'],
+               'featurecategory_basicshape': ['roisize',
+                                              'circularity',
+                                              'irregularity',
+                                              'irregularity2',
+                                              'axes'],
+               'featurecategory_convhull': ['convexhull'],
+               'featurecategory_distance': ['distance'],
+               'featurecategory_moments': ['moments']}
+#>>>>>>> adding feature parameters (not working yet)
+
+DEFAULT_FEATURE_PARAMS = {
+                          'featurecategory_granugrey': {'dist': (1, 2, 3, 5, 7)},
+                          'featurecategory_haralick': {'se': (1, 2, 4, 8)},
+                          }
 
 class PositionCore(LoggerObject):
 
@@ -169,12 +191,45 @@ class PositionCore(LoggerObject):
 
         for group, features in FEATURE_MAP.iteritems():
             if self.settings.get(SECTION_NAME_FEATURE_EXTRACTION,
-                                 self._resolve_name(ch_name, group)):
+#<<<<<<< HEAD
+#                                 self._resolve_name(ch_name, group)):
+#
+#                for feature, params in features.iteritems():
+#                    fgroups[feature] = params
+#
+#        return fgroups
+#=======
+                                 self._resolve_name(ch_name, category)):
+                
+#                if "haralick" in category:
+#                    try:
+#                        f_cat_params['haralick_categories'].extend(feature)
+#                    except KeyError:
+#                        assert isinstance(feature, list)
+#                        f_cat_params['haralick_categories'] = feature
+#                else:
+                f_categories += feature
 
-                for feature, params in features.iteritems():
-                    fgroups[feature] = params
-
-        return fgroups
+                if category in DEFATULT_FEATURE_SETTINGS:
+                    f_cat_params[category] = {}
+                    for option in DEFAULT_FEATURE_SETTINGS[category]:        
+                        option_key = self._resolve_name(ch_name, '%s_%s' % (option, category.split('_')[-1]))
+                        
+                        if self.settings.has_option(SECTION_NAME_FEATURE_EXTRACTION, option_key):
+                            str_opt = self.settings.get(SECTION_NAME_FEATURE_EXTRACTION, option_key)
+                            if len(str_opt) == 0:
+                                f_cat_params[category][option] = DEFAULT_FEATURE_SETTINGS[category][option]
+                            else:
+                                f_cat_params[category][option] = tuple([int(x) for x in str_opt.split(',')])
+                            f_cat_params[category][option] = 
+                        else:
+                            f_cat_params[category][option] = DEFAULT_FEATURE_SETTINGS[category][option]
+        #if f_cat_params.has_key("haralick_categories"):
+        #    f_cat_params['haralick_distances'] = (1, 2, 4, 8)
+        
+        #pdb.set_trace()
+        return f_categories, f_cat_params
+#>>>>>>> adding feature parameters (not working yet)
 
     def setup_channel(self, proc_channel, col_channel, zslice_images,
                       check_for_plugins=True):

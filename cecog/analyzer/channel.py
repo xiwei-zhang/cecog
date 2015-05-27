@@ -216,14 +216,40 @@ class Channel(ChannelCore):
         self._features_calculated = True
         for region_name, container in self.containers.iteritems():
             object_holder = ObjectHolder(region_name)
-            if container is not None:
-                for group, params in self.feature_groups.iteritems():
-                    if params is None:
-                        container.applyFeature(group)
-                    else: # special case for haralick features
-                        for param in params:
-                            container.haralick_distance = param
-                            container.applyFeature(group)
+#<<<<<<< HEAD
+#            if container is not None:
+#                for group, params in self.feature_groups.iteritems():
+#                    if params is None:
+#                        container.applyFeature(group)
+#                    else: # special case for haralick features
+#                        for param in params:
+#                            container.haralick_distance = param
+#                            container.applyFeature(group)
+#=======
+            if not container is None:
+                for strFeatureCategory in self.lstFeatureCategories:
+                    # TODO
+                    if strFeatureCategory in self.dctFeatureParameters:
+                        dctParams = self.dctFeatureParameters[strFeatureCategory]
+                        
+                        # pass parameters to container
+                        
+                        # apply features
+                    
+                    else:
+                        container.applyFeature(strFeatureCategory)
+
+                # ---                
+                # to replace
+                # calculate set of haralick features
+                # (with differnt distances)
+                if 'haralick_categories' in self.dctFeatureParameters:
+                    for strHaralickCategory in self.dctFeatureParameters['haralick_categories']:
+                        for iHaralickDistance in self.dctFeatureParameters['haralick_distances']:
+                            container.haralick_distance = iHaralickDistance
+                            container.applyFeature(strHaralickCategory)
+                # ---                
+#>>>>>>> adding feature parameters (not working yet)
 
                 for obj_id, c_obj in container.getObjects().iteritems():
 
