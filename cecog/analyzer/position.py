@@ -67,11 +67,9 @@ FEATURE_MAP = {'featurecategory_intensity': ['normbase', 'normbase2'],
                                               'axes'],
                'featurecategory_convhull': ['convexhull'],
                'featurecategory_distance': ['distance'],
-<<<<<<< HEAD
+
 #>>>>>>> adding feature parameters (not working yet)
 
-=======
->>>>>>> a6004b441c68dab2c9aa80bd84dd08db1798db47
                'featurecategory_moments': ['moments'],
                'featurecategory_spotfeatures': ['spotfeatures'],
                }
@@ -202,9 +200,11 @@ class PositionCore(LoggerObject):
         return (max(xs), max(ys)), image_size
 
     def feature_params(self, ch_name):
-        fgroups = dict()
+        # fgroups = dict()
+        f_categories = list()
+        f_cat_params = dict()
 
-        for group, features in FEATURE_MAP.iteritems():
+        for category, feature in FEATURE_MAP.iteritems():
             if self.settings.get(SECTION_NAME_FEATURE_EXTRACTION,
 #<<<<<<< HEAD
 #                                 self._resolve_name(ch_name, group)):
