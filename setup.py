@@ -40,7 +40,7 @@ ccore = Extension('cecog.ccore._cecog',
                   sources = [join('csrc','src', 'cecog.cxx')],
                   include_dirs=build_helpers.CC_INCLUDES,
                   libraries=['boost_python', 'tiff', 'vigraimpex'],
-                  extra_compile_args = ['-O3', '-fPIC'],
+                  extra_compile_args = ['-O3', '-fPIC', '-std=c++11'],
                   language = 'c++')
 
 # python packages to distribute
