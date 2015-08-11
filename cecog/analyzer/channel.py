@@ -264,6 +264,7 @@ class Channel(ChannelCore):
 #                            container.haralick_distance = iHaralickDistance
 #                            container.applyFeature(strHaralickCategory)
                 # ---                
+
 #>>>>>>> adding feature parameters (not working yet)
 
                 for obj_id, c_obj in container.getObjects().iteritems():

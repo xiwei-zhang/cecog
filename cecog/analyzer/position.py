@@ -67,12 +67,20 @@ FEATURE_MAP = {'featurecategory_intensity': ['normbase', 'normbase2'],
                                               'axes'],
                'featurecategory_convhull': ['convexhull'],
                'featurecategory_distance': ['distance'],
+<<<<<<< HEAD
 #>>>>>>> adding feature parameters (not working yet)
 
+=======
+>>>>>>> a6004b441c68dab2c9aa80bd84dd08db1798db47
                'featurecategory_moments': ['moments'],
                'featurecategory_spotfeatures': ['spotfeatures'],
                }
 
+DEFAULT_FEATURE_PARAMS = {
+                          'featurecategory_granugrey': {'se': (1, 2, 3, 5, 7)},
+                          'featurecategory_haralick': {'dist': (1, 2, 4, 8)},
+                          'featurecategory_spotfeatures': {'diameter': 5, 'thresh': 8},
+                          }
 
 DEFAULT_FEATURE_PARAMS = {
                           'featurecategory_granugrey': {'se': (1, 2, 3, 5, 7)},
