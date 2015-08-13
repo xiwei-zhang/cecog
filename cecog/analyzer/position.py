@@ -54,7 +54,16 @@ from cecog.learning.learning import ClassDefinitionUnsup
 #from cecog.features import FEATURE_MAP
 #=======
 
-import pdb
+def debug_trace():
+  '''Set a tracepoint in the Python debugger that works with Qt'''
+  #from PyQt4.QtCore import pyqtRemoveInputHook
+
+  # Or for Qt5
+  from PyQt5.QtCore import pyqtRemoveInputHook
+
+  from ipdb import set_trace
+  pyqtRemoveInputHook()
+  set_trace()
 
 FEATURE_MAP = {'featurecategory_intensity': ['normbase', 'normbase2'],
                'featurecategory_haralick': ['haralick', 'haralick2'],
@@ -244,7 +253,9 @@ class PositionCore(LoggerObject):
                       check_for_plugins=True):
 
         # determine the list of features to be calculated from each object
-        f_params = self.feature_params(proc_channel)
+        # f_params = self.feature_params(proc_channel)
+        f_cats, f_params = self.feature_params(proc_channel)
+
         reg_shift, im_size = self.registration_shift()
         ch_cls = self.CHANNELS[proc_channel.lower()]
 
@@ -260,7 +271,9 @@ class PositionCore(LoggerObject):
                          fNormalizeMax = self.settings.get2('%s_normalizemax' %proc_channel),
                          bFlatfieldCorrection = self.settings.get2('%s_flat_field_correction' %proc_channel),
                          strBackgroundImagePath = self.settings.get2('%s_flat_field_correction_image_dir' %proc_channel),
-                         feature_groups = f_params,
+                         # feature_groups = f_params,
+                         lstFeatureCategories = f_cats,
+                         dctFeatureParameters = f_params,                         
                          check_for_plugins = check_for_plugins)
 
         if channel.is_virtual():

@@ -68,6 +68,17 @@ from cecog.gui.progressdialog import ProgressObject
 from cecog.gui.helpbrowser import AtAssistant
 from cecog.css import loadStyle
 
+def debug_trace():
+  '''Set a tracepoint in the Python debugger that works with Qt'''
+  # from PyQt4.QtCore import pyqtRemoveInputHook
+
+  # Or for Qt5
+  from PyQt5.QtCore import pyqtRemoveInputHook
+
+  from ipdb import set_trace
+  pyqtRemoveInputHook()
+  set_trace()
+
 def fix_path(path):
     "Windows sucks!"
     if sys.platform.startswith("win"):
@@ -501,6 +512,8 @@ class CecogAnalyzer(QtWidgets.QMainWindow):
         elif self._browser is None:
             try:
                 browser = Browser(self._settings, self._imagecontainer, None)
+                debug_trace()
+                browser.setMaximumSize(1920,1080)
                 browser.show()
                 browser.raise_()
                 browser.setFocus()

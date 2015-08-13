@@ -30,7 +30,6 @@ from PyQt5.QtGui import QTextDocument
 from cecog import version
 from cecog.gui.util import loadUI
 
-
 class AtLineEdit(QtWidgets.QLineEdit):
     """QLineEdit with clear button, which appears when user enters text."""
 

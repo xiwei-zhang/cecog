@@ -117,6 +117,9 @@ class Browser(QMainWindow):
         self.min_time = meta_data.times[0]
         self.max_frame = meta_data.dim_t-1
 
+        self.setMaximumSize(1500, 800)
+        print "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", self.size()
+        
         layout = QGridLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
         self.image_viewers = {
@@ -127,6 +130,9 @@ class Browser(QMainWindow):
         self.image_viewer = self.image_viewers['image']
         layout.addWidget(self.image_viewer , 0, 0)
 
+        self.setMaximumSize(1500, 800)
+        print "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", self.size()
+        
         self.image_viewer.zoom_info_updated.connect(self.on_zoom_info_updated)
 
         self._t_slider = TSlider(Qt.Horizontal, frame)
@@ -145,6 +151,8 @@ class Browser(QMainWindow):
         else:
             self._t_slider.hide()
         layout.addWidget(self._t_slider, 1, 0)
+        self.setMaximumSize(1500, 800)
+        print "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", self.size()
 
         self.coordinate.position = meta_data.positions[0]
         self.coordinate.time = self._t_slider.minimum()
@@ -194,7 +202,8 @@ class Browser(QMainWindow):
         act_refresh = self.create_action('Refresh',
                                          shortcut=QKeySequence('F5'),
                                          slot=self.on_refresh)
-
+        self.setMaximumSize(1500, 800)
+        print "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", self.size()
         act_fullscreen = self.create_action(
             'Full Screen',
             shortcut=QKeySequence('CTRL+F'),
@@ -228,7 +237,8 @@ class Browser(QMainWindow):
                                         checkable=True,
                                         checked=True)
         view_menu = self.menuBar().addMenu('&View')
-
+        self.setMaximumSize(1500, 800)
+        print "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", self.size()
         self.add_actions(view_menu, (act_resize, None,
                                      act_zoom100, act_zoomfit,
                                      act_zoomin, act_zoomout,
@@ -245,7 +255,8 @@ class Browser(QMainWindow):
 
         self._statusbar = QStatusBar(self)
         self.setStatusBar(self._statusbar)
-
+        self.setMaximumSize(1500, 800)
+        print "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", self.size()
         toolbar = self.addToolBar('Toolbar')
         toolbar.setObjectName('Toolbar')
         toolbar.setMovable(False)
@@ -274,7 +285,8 @@ class Browser(QMainWindow):
                               self, self._settings, self._imagecontainer)
         except Exception as e:
             warning(self, str(e))
-
+        self.setMaximumSize(1500, 800)
+        print "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", self.size()
         # set the Navigation module activated
         self._module_manager.activate_tab(NavigationModule.NAME)
 
@@ -282,7 +294,8 @@ class Browser(QMainWindow):
         # process and display the first image
         self._restore_geometry()
         self._process_image()
-
+        self.setMaximumSize(1500, 800)
+        print "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", self.size()
     def closeEvent(self, event):
         self._save_geometry()
 

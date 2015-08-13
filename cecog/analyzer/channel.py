@@ -33,7 +33,17 @@ from cecog.logging import LoggerObject
 from cecog.plugin.metamanager import MetaPluginManager
 from cecog.util.ctuple import COrderedDict
 
+def debug_trace():
+  '''Set a tracepoint in the Python debugger that works with Qt'''
+  #from PyQt4.QtCore import pyqtRemoveInputHook
 
+  # Or for Qt5
+  from PyQt5.QtCore import pyqtRemoveInputHook
+
+  from ipdb import set_trace
+  pyqtRemoveInputHook()
+  set_trace()
+  
 class ChannelCore(LoggerObject):
 
     NAME = None
@@ -50,6 +60,8 @@ class ChannelCore(LoggerObject):
                  strImageOutCompression="80",
                  strPathOutDebug=None,
                  feature_groups=None,
+                 lstFeatureCategories=None,
+                 dctFeatureParameters=None,
                  lstFeatureNames=None,
                  bFlatfieldCorrection=False,
                  strBackgroundImagePath="",
@@ -61,7 +73,8 @@ class ChannelCore(LoggerObject):
                  check_for_plugins=True):
         super(ChannelCore, self).__init__()
 
-        assert isinstance(feature_groups, dict)
+        #debug_trace()
+        #assert isinstance(feature_groups, dict)
 
         # remove all the hungarian bullshit as soon as possible!
         self.strChannelId = strChannelId
@@ -73,6 +86,8 @@ class ChannelCore(LoggerObject):
         self.strImageOutCompression = strImageOutCompression
         self.strPathOutDebug = strPathOutDebug
         self.feature_groups = feature_groups
+        self.lstFeatureCategories = lstFeatureCategories
+        self.dctFeatureParameters = dctFeatureParameters        
         self.lstFeatureNames = lstFeatureNames
         self.bFlatfieldCorrection = bFlatfieldCorrection
         self.strBackgroundImagePath = strBackgroundImagePath
@@ -285,11 +300,18 @@ class Channel(ChannelCore):
                     # at the moment a bit of a hack #
                     # The problem is that orientation cannot be a feature #
                     # but moments need to be chosen to calculate the orientation. #
-                    if self.feature_groups.has_key('moments'):
-                        obj.orientation = Orientation(
-                            angle = c_obj.orientation,
-                            eccentricity = dctFeatures['eccentricity']
+
+                    if 'moments' in self.lstFeatureCategories:
+                        obj.orientation = Orientation( \
+                            angle = c_obj.orientation,\
+                            eccentricity = dctFeatures['eccentricity'] \
                             )
+                                                      
+#                    if self.feature_groups.has_key('moments'):
+#                        obj.orientation = Orientation(
+#                            angle = c_obj.orientation,
+#                            eccentricity = dctFeatures['eccentricity']
+#                            )
 
                     # why do wo sort the features according to their names??
                     # does it matter?
